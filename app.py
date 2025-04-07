@@ -7,12 +7,11 @@ import uuid
 from datetime import datetime
 
 # Tesseract config for Linux or server
-pytesseract.pytesseract.tesseract_cmd = 'tesseract'  # Keep this if on Linux/Render
+pytesseract.pytesseract.tesseract_cmd = 'tesseract'
 
 # Setup
 app = Flask(__name__)
 UPLOAD_FOLDER = 'static'
-API_KEY = 'pns_ANPR_4e2fD7gN9aBtQxLmR8vZ'  # Change this
 
 # Create static folder if not exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -78,11 +77,6 @@ def detect_plate(image_path):
 
 @app.route('/readnumberplate', methods=['POST'])
 def anpr_api():
-    # API key check
-    api_key = request.headers.get('x-api-key')
-    if api_key != API_KEY:
-        return jsonify({"status": "unauthorized", "message": "Invalid API key"}), 401
-
     if 'image' not in request.files:
         return jsonify({"status": "error", "message": "No image provided"}), 400
 
