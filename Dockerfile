@@ -1,26 +1,28 @@
+# Use official Python image as base
 FROM python:3.10-slim
-
-# Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    tesseract-ocr \
-    libglib2.0-0 \
-    libsm6 \
-    libxrender1 \
-    libxext6 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Copy project files
+# Install Tesseract and dependencies for OpenCV
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgl1 \
+    && apt-get clean
+
+# Copy app files
 COPY . /app
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the port Flask/Gunicorn will run on
-EXPOSE 10000
+# Expose the port (optional if using gunicorn internally)
+EXPOSE 5000
 
-# Run using Gunicorn for production performance
-CMD ["gunicorn", "--bind", "0.0.0.0:10000", "app:app"]
+# Start the Flask app
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
