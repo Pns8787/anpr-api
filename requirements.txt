@@ -1,6 +1,5 @@
-flask
-numpy
+Flask
 opencv-python-headless
+numpy
 pytesseract
-imutils
 
