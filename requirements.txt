@@ -1,0 +1,7 @@
+flask
+flask-mysqldb
+gunicorn
+pytesseract
+opencv-python
+Pillow
+numpy
