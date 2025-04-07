@@ -12,7 +12,7 @@ pytesseract.pytesseract.tesseract_cmd = 'tesseract'  # Keep this if on Linux/Ren
 # Setup
 app = Flask(__name__)
 UPLOAD_FOLDER = 'static'
-API_KEY = 'your_secure_api_key'  # Change this
+API_KEY = 'pns_ANPR_4e2fD7gN9aBtQxLmR8vZ'  # Change this
 
 # Create static folder if not exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -76,7 +76,7 @@ def detect_plate(image_path):
 
     return plate_number, center_x, center_y, filename, states.get(stat.upper(), "Unknown")
 
-@app.route('/api/anpr', methods=['POST'])
+@app.route('/readnumberplate', methods=['POST'])
 def anpr_api():
     # API key check
     api_key = request.headers.get('x-api-key')
