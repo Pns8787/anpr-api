@@ -1,7 +1,4 @@
-flask
-gunicorn
-flask-mysqldb
-pytesseract
-opencv-python-headless
-Pillow
+Flask
 numpy
+opencv-python-headless
+pytesseract
