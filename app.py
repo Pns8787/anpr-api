@@ -1,19 +1,14 @@
 from flask import Flask, request, jsonify, send_from_directory
 import cv2
 import numpy as np
-import pytesseract
 import os
 import uuid
 from datetime import datetime
-
-# Tesseract config for Linux or server
-pytesseract.pytesseract.tesseract_cmd = 'tesseract'
+from ocr import recognize_plate_from_image  # ✅ Import improved OCR function
 
 # Setup
 app = Flask(__name__)
 UPLOAD_FOLDER = 'static'
-
-# Create static folder if not exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Haar Cascade
@@ -45,16 +40,9 @@ def detect_plate(image_path):
         a, b = (int(0.02 * h_img), int(0.02 * w_img))
         plate = img[y + a:y + h - a, x + b:x + w - b, :]
 
-        # Clean plate
-        kernel = np.ones((1, 1), np.uint8)
-        plate = cv2.dilate(plate, kernel, iterations=1)
-        plate = cv2.erode(plate, kernel, iterations=1)
-        plate_gray = cv2.cvtColor(plate, cv2.COLOR_BGR2GRAY)
-        _, plate_bin = cv2.threshold(plate_gray, 127, 255, cv2.THRESH_BINARY)
-
-        read = pytesseract.image_to_string(plate_bin)
-        plate_number = ''.join(e for e in read if e.isalnum())
-        stat = plate_number[0:2]
+        # ✅ Use improved OCR from external module
+        plate_number = recognize_plate_from_image(plate)
+        stat = plate_number[0:2] if plate_number else ""
 
         # Get plate center
         center_x = x + w / 2
@@ -66,7 +54,7 @@ def detect_plate(image_path):
         cv2.rectangle(img, (x, y - text_size[1] - 10), (x + text_size[0] + 10, y), (0, 0, 255), -1)
         cv2.putText(img, plate_number, (x + 5, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2, cv2.LINE_AA)
 
-        break  # Only process first plate
+        break  # Only first plate
 
     # Save annotated image
     filename = f"{uuid.uuid4().hex}.jpg"
