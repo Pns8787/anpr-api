@@ -1,10 +1,13 @@
 from flask import Flask, request, jsonify, send_from_directory
 import cv2
 import numpy as np
+import pytesseract
 import os
 import uuid
 from datetime import datetime
-from ocr import recognize_plate_from_image  # ✅ Import improved OCR function
+
+# Tesseract config for Linux/server
+pytesseract.pytesseract.tesseract_cmd = 'tesseract'
 
 # Setup
 app = Flask(__name__)
@@ -40,21 +43,34 @@ def detect_plate(image_path):
         a, b = (int(0.02 * h_img), int(0.02 * w_img))
         plate = img[y + a:y + h - a, x + b:x + w - b, :]
 
-        # ✅ Use improved OCR from external module
-        plate_number = recognize_plate_from_image(plate)
-        stat = plate_number[0:2] if plate_number else ""
+        # Preprocessing
+        kernel = np.ones((1, 1), np.uint8)
+        plate = cv2.dilate(plate, kernel, iterations=1)
+        plate = cv2.erode(plate, kernel, iterations=1)
+        plate_gray = cv2.cvtColor(plate, cv2.COLOR_BGR2GRAY)
+        _, plate_bin = cv2.threshold(plate_gray, 127, 255, cv2.THRESH_BINARY)
 
-        # Get plate center
+        # Save for debug (optional)
+        debug_path = os.path.join(UPLOAD_FOLDER, "plate_debug.jpg")
+        cv2.imwrite(debug_path, plate_gray)
+
+        # Tesseract OCR config
+        custom_config = r'--oem 3 --psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        read = pytesseract.image_to_string(plate_gray, config=custom_config)
+        plate_number = ''.join(e for e in read if e.isalnum()).upper()
+        stat = plate_number[0:2]
+
+        # Get center
         center_x = x + w / 2
         center_y = y + h / 2
 
-        # Annotate image
+        # Annotate result
         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 3)
         text_size = cv2.getTextSize(plate_number, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)[0]
         cv2.rectangle(img, (x, y - text_size[1] - 10), (x + text_size[0] + 10, y), (0, 0, 255), -1)
         cv2.putText(img, plate_number, (x + 5, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2, cv2.LINE_AA)
 
-        break  # Only first plate
+        break  # Process only the first plate
 
     # Save annotated image
     filename = f"{uuid.uuid4().hex}.jpg"
@@ -77,7 +93,6 @@ def anpr_api():
 
     try:
         plate_number, x, y, filename, state = detect_plate(temp_path)
-
         return jsonify({
             "status": "success",
             "data": {
